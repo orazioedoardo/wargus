@@ -441,7 +441,8 @@ local defaultPreferences = {
 	SimplifiedAutoTargeting = true,
   FogOfWarType = "fast",  -- "enhanced", "tiled", "fast". Tiled and fast types of FOW don't work with shadow casting FOV.
   FogOfWarBilinear = false,     -- Enable/Disable bilinear filtration for fog of war
-  MapGrid = false
+  MapGrid = false,
+  LanguageChosen = false          -- Chosen in the Language Options: until then, the system's (see below)
 }
 
 --- Skirmish Setup --------------
@@ -461,6 +462,10 @@ if (wc2.preferences.ServerList == nil) then
 	wc2.preferences.ServerList = {}
 end
 
+-- A language chosen before the language followed the system's (see below)
+if wc2.preferences.LanguageChosen == nil and (wc2.preferences.StratagusTranslation or "") ~= "" then
+	wc2.preferences.LanguageChosen = true
+end
 CompleteMissingValues(wc2.preferences, defaultPreferences)
 SavePreferences()
 
@@ -509,6 +514,23 @@ SetMouseScrollSpeedControl(wc2.preferences.MouseScrollSpeedControl)
 SetMouseScrollSpeedDefault(wc2.preferences.MouseScrollSpeedDefault)
 SetMusicEnabled(wc2.preferences.MusicEnabled)
 SetMusicVolume(wc2.preferences.MusicVolume)
+-- Until a language is chosen in the Language Options, the system's (the browser's on the web): the first of the
+-- preferred languages there's a translation for, else English
+if not wc2.preferences.LanguageChosen and GetPreferredLanguages then
+	local translations = {en = "", it = "it", es = "es", ru = "ru", fr = "fr", de = "de", cs = "cz"}
+	wc2.preferences.StratagusTranslation = ""
+	wc2.preferences.GameTranslation = ""
+	for i, language in ipairs(GetPreferredLanguages()) do
+		local code = translations[string.lower(language)]
+		if code then
+			if code ~= "" then
+				wc2.preferences.StratagusTranslation = "scripts/translate/stratagus-" .. code .. ".po"
+				wc2.preferences.GameTranslation = "scripts/translate/" .. code .. "_" .. string.upper(code) .. ".po"
+			end
+			break
+		end
+	end
+end
 SetTranslationsFiles(wc2.preferences.StratagusTranslation, wc2.preferences.GameTranslation)
 SetVideoFullScreen(wc2.preferences.VideoFullScreen)
 SetVideoResolution(wc2.preferences.VideoWidth, wc2.preferences.VideoHeight)

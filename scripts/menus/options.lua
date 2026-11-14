@@ -827,6 +827,7 @@ function RunLanguageMenu()
 			 if (languageList:getSelected() >= 0) then
 			    wc2.preferences.StratagusTranslation = LanguageTable[languageList:getSelected()*3 + 2]
 			    wc2.preferences.GameTranslation = LanguageTable[languageList:getSelected()*3 + 3]
+			    wc2.preferences.LanguageChosen = true
 			    SetTranslationsFiles(wc2.preferences.StratagusTranslation, wc2.preferences.GameTranslation)
 			    SavePreferences()
 			    RunConfirmRestart(menu)
