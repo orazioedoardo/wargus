@@ -29,6 +29,12 @@
 
 project(wargus)
 cmake_minimum_required(VERSION 3.10)
+
+# The web build (configured with emcmake) is its own project: see web/CMakeLists.txt
+if(EMSCRIPTEN)
+	add_subdirectory(web)
+	return()
+endif()
 cmake_policy(VERSION 3.10..3.20.2)
 set(WARGUS_VERSION 2.4.1)
 
