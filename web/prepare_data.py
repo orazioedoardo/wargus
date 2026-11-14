@@ -21,7 +21,8 @@ The data is made smaller for the web:
 - left out: the original archives (copied for re-extracting from the game's menu), the Smacker videos (the engine plays
   them once converted to Ogg Theora, which the web build doesn't include) and the MIDI music
 
-The conversion is done once (delete WORK/extracted to redo it); the data is redone whenever this script changes. When
+The conversion is done once (delete WORK/extracted to redo it); the data is redone whenever this script, or this
+repository's files it includes, change. When
 it's done, OUTPUT/.stamp is rewritten, which relinks the web build.
 
 Needs cmake, a C++ compiler, libpng and zlib (to build wartool), ffmpeg and oggenc (vorbis-tools), innoextract (for an
@@ -122,12 +123,27 @@ def codec(path):
                            "-of", "csv=p=0", str(path)], capture_output=True, text=True).stdout.strip()
 
 
+COPIED = ("shaders", "contrib", "campaigns", "maps", "scripts")   # this repository's folders the data includes
+
+
+def version(extracted):
+    """What the data is made from: this script, the conversion, and the files copied from this repository (by name,
+    size and modification time). The data is redone when it changes."""
+    h = hashlib.sha256(Path(__file__).read_bytes() + (extracted / ".converted").read_bytes())
+    for folder in COPIED:
+        for path in sorted((WARGUS / folder).rglob("*")):
+            if path.is_file():
+                st = path.stat()
+                h.update(f"{path.relative_to(WARGUS)}\0{st.st_size}\0{st.st_mtime_ns}\n".encode())
+    return h.hexdigest()
+
+
 def prepare(extracted, output):
     """The data in OUTPUT, from the conversion and this repository's files."""
     shutil.rmtree(output, ignore_errors=True)
     shutil.copytree(extracted, output, ignore=shutil.ignore_patterns(
         "*.mpq", "*.MPQ", "videos", "data_copied.wargus", ".converted", "*.mid"))
-    for folder in ("shaders", "contrib", "campaigns", "maps", "scripts"):
+    for folder in COPIED:
         shutil.copytree(WARGUS / folder, output / folder, dirs_exist_ok=True)
     contrib = WARGUS / "contrib"
     shutil.copy(contrib / "red_cross.png", output / "graphics" / "missiles")
@@ -185,15 +201,14 @@ def main():
     if args.icon:
         write_icon(original, args.icon)
     extracted = convert(build_wartool(work, args.stratagus.resolve()), original, work)
-    # Redone whenever this script, or the conversion, changes
-    version = hashlib.sha256(Path(__file__).read_bytes() + (extracted / ".converted").read_bytes()).hexdigest()
+    current = version(extracted)
     stamp = output / ".stamp"
-    if stamp.exists() and stamp.read_text() == version:
+    if stamp.exists() and stamp.read_text() == current:
         print(f"{output} is up to date")
         return
     print(f"Preparing the data in {output}", flush=True)
     prepare(extracted, output)
-    stamp.write_text(version)
+    stamp.write_text(current)
 
 
 if __name__ == "__main__":
