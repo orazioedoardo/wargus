@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Prepares Wargus's data for the web build of Stratagus (Stratagus's cmake/web.cmake: -DSTRATAGUS_WEB_DATA).
+"""Prepares Wargus's data for the web build of Stratagus (Stratagus's cmake/web.cmake: -DSTRATAGUS_WEB_DATA). Run by
+web/CMakeLists.txt, which builds the two together.
 
-    web/prepare_data.py ORIGINAL OUTPUT --stratagus STRATAGUS [--work WORK]
+    web/prepare_data.py ORIGINAL OUTPUT --stratagus STRATAGUS [--work WORK] [--icon ICON]
 
-ORIGINAL is the installed original game: War2Dat.mpq and Install.mpq for the Battle.net Edition (as sold by GOG), or
-the files of a DOS CD. OUTPUT gets the data as the web build preloads it, at / (the engine's default data path is the
-current directory): what wartool converts from the original, with this repository's scripts, maps and graphics, as
-the install puts them together (CMakeLists.txt). STRATAGUS is the Stratagus source, whose headers wartool's build
-needs. WORK keeps wartool's build and its conversion between runs (default: OUTPUT.work).
+ORIGINAL is the original game: the installed game (War2Dat.mpq and Install.mpq for the Battle.net Edition, or the files
+of a DOS CD), or GOG's installer (setup_warcraft_ii_*.exe, with its .bin next to it), which is unpacked into
+WORK/original the first time; after that, it isn't needed. OUTPUT gets the data as the web build preloads it, at / (the
+engine's default data path is the current directory): what wartool converts from the original, with this
+repository's scripts, maps and graphics, as the install puts them together (CMakeLists.txt). STRATAGUS is the
+Stratagus source, whose headers wartool's build needs. WORK keeps wartool's build, the unpacked installer and the
+conversion between runs (default: OUTPUT.work). ICON, if given, gets a 256x256 PNG icon: the game's own from GOG's
+installer when the original has it, otherwise this repository's.
 
 The data is made smaller for the web:
 - the music as Ogg Vorbis: wartool has ffmpeg encode it to .ogg without naming a codec, and an ffmpeg without libvorbis
@@ -20,7 +24,8 @@ The data is made smaller for the web:
 The conversion is done once (delete WORK/extracted to redo it); the data is redone whenever this script changes. When
 it's done, OUTPUT/.stamp is rewritten, which relinks the web build.
 
-Needs cmake, a C++ compiler, libpng and zlib (to build wartool), ffmpeg and oggenc (vorbis-tools).
+Needs cmake, a C++ compiler, libpng and zlib (to build wartool), ffmpeg and oggenc (vorbis-tools), innoextract (for an
+installer), and Pillow (for the icon).
 """
 
 import argparse
@@ -49,6 +54,46 @@ def build_wartool(work, stratagus):
              f"-DSTRATAGUS_INCLUDE_DIR={stratagus / 'gameheaders'}", "-DSTRATAGUS=stratagus"])
     run(["cmake", "--build", build, "--parallel", "--target", "wartool"])
     return build / "wartool"
+
+
+def unpack(original, work):
+    """The installed game: ORIGINAL itself, or GOG's installer unpacked into WORK/original (once)."""
+    unpacked = work / "original"
+    if (unpacked / ".unpacked").exists():
+        return unpacked
+    if original is None:
+        sys.exit("Give the original game: the installed game, or GOG's installer")
+    if original.is_dir():
+        return original
+    if not original.is_file():
+        sys.exit(f"The original game isn't at {original}: give the installed game, or GOG's installer")
+    if not shutil.which("innoextract"):
+        sys.exit("innoextract not found: it unpacks GOG's installer")
+    print(f"Unpacking {original.name}", flush=True)
+    shutil.rmtree(unpacked, ignore_errors=True)
+    run(["innoextract", "-s", "-d", unpacked, original])
+    (unpacked / ".unpacked").write_text(f"{original.name}\n")
+    return unpacked
+
+
+def write_icon(original, path):
+    """A 256x256 icon: GOG's, when the original has it (its round portrait scaled to 82% of the icon, as round icons
+    usually are, so that it doesn't look bigger than others next to it), otherwise this repository's."""
+    from PIL import Image
+    icons = sorted((original / "app").glob("goggame-*.ico"))
+    if icons:
+        icon = Image.open(icons[0])
+        icon.size = max(icon.info["sizes"])
+        icon = icon.convert("RGBA")
+        icon = icon.crop(icon.getchannel("A").point(lambda a: 255 if a > 32 else 0).getbbox())
+        side = round(256 * 0.82)
+    else:
+        icon = Image.open(WARGUS / "wargus.png").convert("RGBA")
+        side = 256
+    icon = icon.resize((side, round(side * icon.height / icon.width)), Image.LANCZOS)
+    padded = Image.new("RGBA", (256, 256))
+    padded.paste(icon, ((256 - icon.width) // 2, (256 - icon.height) // 2))
+    padded.save(path)
 
 
 def convert(wartool, original, work):
@@ -121,10 +166,12 @@ def prepare(extracted, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("original", type=Path, help="the installed original game")
+    parser.add_argument("original", type=Path, help="the installed original game, or GOG's installer")
     parser.add_argument("output", type=Path, help="where to put the data")
     parser.add_argument("--stratagus", type=Path, required=True, help="the Stratagus source")
-    parser.add_argument("--work", type=Path, help="where to keep wartool's build and conversion (default: OUTPUT.work)")
+    parser.add_argument("--work", type=Path, help="where to keep wartool's build, the unpacked installer and the "
+                        "conversion (default: OUTPUT.work)")
+    parser.add_argument("--icon", type=Path, help="where to write a 256x256 PNG icon")
     args = parser.parse_args()
     missing = [n for n in ("cmake", "ffmpeg", "ffprobe", "oggenc") if not shutil.which(n)]
     if missing:
@@ -133,7 +180,11 @@ def main():
     work = (args.work or output.with_name(output.name + ".work")).resolve()
     work.mkdir(parents=True, exist_ok=True)
 
-    extracted = convert(build_wartool(work, args.stratagus.resolve()), args.original.resolve(), work)
+    # An empty ORIGINAL (the installer was removed after it was unpacked) is fine once it's unpacked
+    original = unpack(args.original.resolve() if args.original.parts else None, work)
+    if args.icon:
+        write_icon(original, args.icon)
+    extracted = convert(build_wartool(work, args.stratagus.resolve()), original, work)
     # Redone whenever this script, or the conversion, changes
     version = hashlib.sha256(Path(__file__).read_bytes() + (extracted / ".converted").read_bytes()).hexdigest()
     stamp = output / ".stamp"
