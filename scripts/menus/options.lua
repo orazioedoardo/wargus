@@ -600,15 +600,22 @@ function RunSpeedsMenu()
 
    menu:addLabel(_("Mouse Scroll Speed"), 12, 112, Fonts["game"], false)
 
+   -- The scroll speeds are whole numbers (the engine drops fractions): the slider is set to the speed it sets
+   local function setScrollSpeed(slider, set, value)
+      value = math.max(1, math.min(10, math.floor(value + 0.5)))
+      slider:setValue(value)
+      set(value)
+   end
+
    local mousescrollspeed = {}
    -- slider button to decrease slider value
-   mousescrollspeed = menu:addImageLeftSliderButton("", nil, 21, 128, function() mousescrollspeed:setValue(mousescrollspeed:getValue() - .5); SetMouseScrollSpeed(mousescrollspeed:getValue()) end)
+   mousescrollspeed = menu:addImageLeftSliderButton("", nil, 21, 128, function() setScrollSpeed(mousescrollspeed, SetMouseScrollSpeed, mousescrollspeed:getValue() - 1) end)
 
    -- slider button to decrease slider value
-   mousescrollspeed = menu:addImageRightSliderButton("", nil, 213, 128, function() mousescrollspeed:setValue(mousescrollspeed:getValue() + .5); SetMouseScrollSpeed(mousescrollspeed:getValue()) end)
+   mousescrollspeed = menu:addImageRightSliderButton("", nil, 213, 128, function() setScrollSpeed(mousescrollspeed, SetMouseScrollSpeed, mousescrollspeed:getValue() + 1) end)
 
    -- slider itself
-   mousescrollspeed = menu:addImageSlider(1, 10, 172, 18, 41, 128, g_marker, g_slider, function() SetMouseScrollSpeed(mousescrollspeed:getValue()) end)
+   mousescrollspeed = menu:addImageSlider(1, 10, 172, 18, 41, 128, g_marker, g_slider, function() setScrollSpeed(mousescrollspeed, SetMouseScrollSpeed, mousescrollspeed:getValue()) end)
 
    -- set the value so the game saves it
    mousescrollspeed:setValue(GetMouseScrollSpeed())
@@ -623,15 +630,15 @@ function RunSpeedsMenu()
 
    local keyscrollspeed = {}
    -- slider button to decrease slider value
-   keyscrollspeed = menu:addImageLeftSliderButton("", nil, 21, 196, function() keyscrollspeed:setValue(keyscrollspeed:getValue() - .5); SetMouseScrollSpeed(keyscrollspeed:getValue()) end)
+   keyscrollspeed = menu:addImageLeftSliderButton("", nil, 21, 196, function() setScrollSpeed(keyscrollspeed, SetKeyScrollSpeed, keyscrollspeed:getValue() - 1) end)
 
    -- slider button to decrease slider value
-   keyscrollspeed = menu:addImageRightSliderButton("", nil, 213, 196, function() keyscrollspeed:setValue(keyscrollspeed:getValue() + .5); SetMouseScrollSpeed(keyscrollspeed:getValue()) end)
+   keyscrollspeed = menu:addImageRightSliderButton("", nil, 213, 196, function() setScrollSpeed(keyscrollspeed, SetKeyScrollSpeed, keyscrollspeed:getValue() + 1) end)
 
    -- slider itself
    keyscrollspeed = menu:addImageSlider(1, 10, 172, 18, 41, 196, g_marker, g_slider,
 					function()
-					   SetKeyScrollSpeed(keyscrollspeed:getValue())
+					   setScrollSpeed(keyscrollspeed, SetKeyScrollSpeed, keyscrollspeed:getValue())
    end)
 
    -- set the value so the game saves it
