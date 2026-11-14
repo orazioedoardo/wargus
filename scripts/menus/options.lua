@@ -665,6 +665,9 @@ function RunSpeedsMenu()
 end
 
 function SetVideoSize(width, height, keep_ratio)
+   if ResolutionSetByEngine and keep_ratio == nil then
+      keep_ratio = wc2.preferences.KeepRatio
+   end
    if (Video:ResizeScreen(width, height) == false) then
       return
    end
@@ -674,6 +677,18 @@ function SetVideoSize(width, height, keep_ratio)
      bckground:Resize(Video.Width, Video.Height)
    end
    backgroundWidget = ImageWidget(bckground)
+   if ResolutionSetByEngine then
+      -- The web build: the engine sets the resolution (fixed for menus, following the window in a game), which isn't
+      -- a preference. Keep the background's ratio, the player's race's interface and the music
+      local playlist = wargus.playlist
+      Load("scripts/ui.lua")
+      local race = GetPlayerData(GetThisPlayer(), "RaceName")
+      if race == "human" or race == "orc" then
+         Load("scripts/" .. race .. "/ui.lua")
+      end
+      wargus.playlist = playlist
+      return
+   end
    Load("scripts/ui.lua")
    wc2.preferences.VideoWidth = Video.Width
    wc2.preferences.VideoHeight = Video.Height
@@ -849,9 +864,13 @@ function RunGameOptionsMenu()
             function() RunDebugMenu() end)
       end
    else
-      menu:addFullButton(_("Video (~<F9~>)"), "f9", 16, 40 + 36*3,
-			 function() RunVideoOptionsMenu() end)
-      menu:addFullButton(_("Language"), "f13", 16, 40 + 36*4,
+      local row = 3
+      if not ResolutionSetByEngine then   -- the web build has no resolution to choose
+         menu:addFullButton(_("Video (~<F9~>)"), "f9", 16, 40 + 36*row,
+			    function() RunVideoOptionsMenu() end)
+         row = row + 1
+      end
+      menu:addFullButton(_("Language"), "f13", 16, 40 + 36*row,
 			 function() RunLanguageMenu() end)
    end
    menu:addFullButton(_("Previous (~<Esc~>)"), "escape", 128 - (224 / 2), 288 - 40,
@@ -884,9 +903,13 @@ function RunOptionsSubMenu()
                       function() RunGameSoundOptionsMenu(); end)
    menu:addFullButton(_("Preferences (~<F8~>)"), "f8", offx + 208, offy + 104 + 36*3,
      function() RunPreferencesMenu(); end)
-   menu:addFullButton(_("Video (~<F9~>)"), "f9", offx + 208, offy + 104 + 36*4,
-     function() RunVideoOptionsMenu(); menu:stop(1); RunOptionsSubMenu() end)
-   menu:addFullButton(_("Language"), "f13", offx + 208, offy + 104 + 36*5,
+   local row = 4
+   if not ResolutionSetByEngine then   -- the web build has no resolution to choose
+      menu:addFullButton(_("Video (~<F9~>)"), "f9", offx + 208, offy + 104 + 36*row,
+        function() RunVideoOptionsMenu(); menu:stop(1); RunOptionsSubMenu() end)
+      row = row + 1
+   end
+   menu:addFullButton(_("Language"), "f13", offx + 208, offy + 104 + 36*row,
      function() RunLanguageMenu();  end)
     
    menu:addFullButton(_("Previous (~<Esc~>)"), "escape", offx + 208, offy + 104 + 36*7,
