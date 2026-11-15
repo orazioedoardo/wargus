@@ -406,12 +406,12 @@ local defaultPreferences = {
 	GroupKeys = "0123456789`",
 	HoldClickDelayInMs = 1000,      --  For the wanted hold-click delay (in ms).
 	KeepRatio = true,               -- Keep background image ratio in menu
-	KeyScrollSpeed = 4,
+	KeyScrollSpeed = 2,
 	LastDifficulty = 2,
 	LeaveStopScrolling = true,      --  Enable/disable stopping scrolling when mouse leave.
 	MineNotifications = true,
 	MinimapWithTerrain = true,      --  Choose your default for minimap with/without terrain.
-	MouseScrollSpeed = 1,
+	MouseScrollSpeed = 2,
 	MouseScrollSpeedControl = 15,   --  Same as above if Control is pressed
 	MouseScrollSpeedDefault = 4,    --  While middle-mouse is pressed: Pixels to move per scrolled mouse pixel, negative = reversed
 	MusicEnabled = true,
