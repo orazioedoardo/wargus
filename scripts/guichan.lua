@@ -1700,7 +1700,7 @@ function RunModCampaignGameMenu()
 
   local path = "scripts/lists/campaigns/"
   local campaignList = ListFilesInDirectory(path, true)
-  local lastCampaign = 0
+  local lastCampaign = 1   -- a row down from the top, clear of the title, down to just above Previous Menu
   local currentPrefix = nil
   local usedAccellerators = {}
 
@@ -1742,7 +1742,7 @@ function RunModCampaignGameMenu()
      lastCampaign = lastCampaign + 1
   end
 
-  menu:addFullButton(_("Previous Menu (~<Esc~>)"), "escape", offx + 208, offy + 104 + 36*(lastCampaign + 2),
+  menu:addFullButton(_("Previous Menu (~<Esc~>)"), "escape", offx + 208, offy + 104 + 36*(lastCampaign + 1),
     function() menu:stop() end)
 
   menu:run()
