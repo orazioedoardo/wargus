@@ -858,11 +858,13 @@ function RunGameOptionsMenu()
    local menu = WarGameMenu(panel(1))
 
    menu:addLabel(_("Game Options"), 128, 11)
-   menu:addFullButton(_("Speeds (~<F6~>)"), "f6", 16, 40 + 36*0,
+   -- The web build has no resolution to choose: without Video, the buttons above it move down by one
+   local down = (GameCycle == 0 and ResolutionSetByEngine) and 1 or 0
+   menu:addFullButton(_("Speeds (~<F6~>)"), "f6", 16, 40 + 36*(0 + down),
 		      function() RunSpeedsMenu() end)
-   menu:addFullButton(_("Sound (~<F7~>)"), "f7", 16, 40 + 36*1,
+   menu:addFullButton(_("Sound (~<F7~>)"), "f7", 16, 40 + 36*(1 + down),
 		      function() RunGameSoundOptionsMenu() end)
-   menu:addFullButton(_("Preferences (~<F8~>)"), "f8", 16, 40 + 36*2,
+   menu:addFullButton(_("Preferences (~<F8~>)"), "f8", 16, 40 + 36*(2 + down),
 		      function() RunPreferencesMenu() end)
    if (GameCycle > 0) then
       menu:addFullButton(_("Diplomacy (~<F9~>)"), "f9", 16, 40 + 36*3,
@@ -872,13 +874,11 @@ function RunGameOptionsMenu()
             function() RunDebugMenu() end)
       end
    else
-      local row = 3
-      if not ResolutionSetByEngine then   -- the web build has no resolution to choose
-         menu:addFullButton(_("Video (~<F9~>)"), "f9", 16, 40 + 36*row,
+      if not ResolutionSetByEngine then
+         menu:addFullButton(_("Video (~<F9~>)"), "f9", 16, 40 + 36*3,
 			    function() RunVideoOptionsMenu() end)
-         row = row + 1
       end
-      menu:addFullButton(_("Language"), "f13", 16, 40 + 36*row,
+      menu:addFullButton(_("Language"), "f13", 16, 40 + 36*4,
 			 function() RunLanguageMenu() end)
    end
    menu:addFullButton(_("Previous (~<Esc~>)"), "escape", 128 - (224 / 2), 288 - 40,
@@ -905,19 +905,19 @@ function RunOptionsSubMenu()
    menu:addLabel(wargus.Name .. _(" V") .. wargus.Version .. ", " .. wargus.Copyright, offx + 320, (Video.Height - 90) + 18*4, Fonts["small"])
    
    menu:addLabel(_("~<Game Options~>"), offx + 640/2, offy + 104 + 10)
-   menu:addFullButton(_("Speeds (~<F6~>)"), "f6", offx + 208, offy + 104 + 36*1,
+   -- The web build has no resolution to choose: without Video, the buttons above it move down by one
+   local down = ResolutionSetByEngine and 1 or 0
+   menu:addFullButton(_("Speeds (~<F6~>)"), "f6", offx + 208, offy + 104 + 36*(1 + down),
      function() RunSpeedsMenu() end)
-   menu:addFullButton(_("Sound (~<F7~>)"), "f7", offx + 208, offy + 104 + 36*2,
+   menu:addFullButton(_("Sound (~<F7~>)"), "f7", offx + 208, offy + 104 + 36*(2 + down),
                       function() RunGameSoundOptionsMenu(); end)
-   menu:addFullButton(_("Preferences (~<F8~>)"), "f8", offx + 208, offy + 104 + 36*3,
+   menu:addFullButton(_("Preferences (~<F8~>)"), "f8", offx + 208, offy + 104 + 36*(3 + down),
      function() RunPreferencesMenu(); end)
-   local row = 4
-   if not ResolutionSetByEngine then   -- the web build has no resolution to choose
-      menu:addFullButton(_("Video (~<F9~>)"), "f9", offx + 208, offy + 104 + 36*row,
+   if not ResolutionSetByEngine then
+      menu:addFullButton(_("Video (~<F9~>)"), "f9", offx + 208, offy + 104 + 36*4,
         function() RunVideoOptionsMenu(); menu:stop(1); RunOptionsSubMenu() end)
-      row = row + 1
    end
-   menu:addFullButton(_("Language"), "f13", offx + 208, offy + 104 + 36*row,
+   menu:addFullButton(_("Language"), "f13", offx + 208, offy + 104 + 36*5,
      function() RunLanguageMenu();  end)
     
    menu:addFullButton(_("Previous (~<Esc~>)"), "escape", offx + 208, offy + 104 + 36*7,
