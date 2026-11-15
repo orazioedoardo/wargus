@@ -387,7 +387,9 @@ local function CompleteMissingValues(table, defaultTable)
 end
 
 wc2 = {preferences = {}}
-Load("preferences.lua")
+if CanAccessFile("preferences.lua") then   -- none yet the first time: the defaults below are saved
+  Load("preferences.lua")
+end
 local defaultPreferences = {
   HardwareCursor = false,
 	CampaignBestScores = {},
