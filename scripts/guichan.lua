@@ -1608,19 +1608,29 @@ function BuildProgramStartMenu()
   
   menu:addLabel(wargus.Name .. _(" V") .. wargus.Version .. ", " .. wargus.Copyright, offx + 320, (Video.Height - 90) + 18*4, Fonts["small"])
   
-  menu:addFullButton(_("~!Single Player Game"), "s", offx + 208, offy + 104 + 36*0,
+  -- The buttons, placed above Exit Program: without Multi Player Game, they move down by one
+  local buttons = {}
+  local function addButton(caption, hotkey, callback)
+    table.insert(buttons, {caption, hotkey, callback})
+  end
+  addButton(_("~!Single Player Game"), "s",
     function() RunSinglePlayerTypeMenu(); menu:stop(1) end)
-  menu:addFullButton(_("~!Multi Player Game"), "m", offx + 208, offy + 104 + 36*1,
-                     function() RunMultiPlayerGameMenu(); menu:stop(1) end)
-  menu:addFullButton(_("~!Replay Game"), "r", offx + 208, offy + 104 + 36*2,
+  if not NetworkUnavailable then   -- the web build can't play over the network
+    addButton(_("~!Multi Player Game"), "m",
+      function() RunMultiPlayerGameMenu(); menu:stop(1) end)
+  end
+  addButton(_("~!Replay Game"), "r",
     function() RunReplayGameMenu(); menu:stop(1) end)
-  menu:addFullButton(_("~!Options"), "o", offx + 208, offy + 104 + 36*3,
+  addButton(_("~!Options"), "o",
     function() RunOptionsSubMenu(); menu:stop(1) end)
-  menu:addFullButton(_("~!Load Mod"), "l", offx + 208, offy + 104 + 36*4,
+  addButton(_("~!Load Mod"), "l",
     function() RunLoadModMenu(); menu:stop(1) end)
-  menu:addFullButton(_("Map ~!Editor"), "e", offx + 208, offy + 104 + 36*5,
+  addButton(_("Map ~!Editor"), "e",
     function() RunEditorMenu(); menu:stop(1) end)
-  menu:addFullButton(_("S~!how Credits"), "h", offx + 208, offy + 104 + 36*6, RunShowCreditsMenu)
+  addButton(_("S~!how Credits"), "h", RunShowCreditsMenu)
+  for i, button in ipairs(buttons) do
+    menu:addFullButton(button[1], button[2], offx + 208, offy + 104 + 36*(7 - table.getn(buttons) + i - 1), button[3])
+  end
 
   menu:addFullButton(_("E~!xit Program"), "x", offx + 208, offy + 104 + 36*7,
     function() menu:stop() end)
