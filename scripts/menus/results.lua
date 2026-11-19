@@ -398,7 +398,23 @@ function RunResultsMenu()
 	end
   end
 
-  local screenUpdate = LuaActionListener(ResultsMainLoop)
+  -- The menu's logic runs once per display refresh (60 or more times a second), whatever the game speed: step the
+  -- animation 30 times a second instead, catching up with the time that passed
+  local stepTicks = 1000 / 30
+  local nextStep = nil
+  local function ResultsUpdate()
+    if not GetTicks then
+      ResultsMainLoop()   -- an engine without GetTicks: once per refresh, as before
+      return
+    end
+    local now = GetTicks()
+    nextStep = nextStep or now
+    while now >= nextStep do
+      ResultsMainLoop()
+      nextStep = nextStep + stepTicks
+    end
+  end
+  local screenUpdate = LuaActionListener(ResultsUpdate)
 
   menu:addLogicCallback(screenUpdate)
 
