@@ -847,8 +847,13 @@ end
 Widget:setGlobalFont(Fonts["large"])
 
 
-DefaultObjectives = {_("-Destroy the enemy")}
-Objectives = DefaultObjectives
+-- The objectives of a game without its own: a new table each time. Objectives must never share its table with
+-- another: a saved game restores a table element by element, into the table already there (see LoadGame).
+function NewDefaultObjectives()
+  return {_("-Destroy the enemy")}
+end
+DefaultObjectives = NewDefaultObjectives()
+Objectives = NewDefaultObjectives()
 
 
 -- Define the different menus ----------
@@ -891,7 +896,7 @@ InitGameSettings()
 
 function RunMap(map, objective, fow, revealmap, results)
   if objective == nil then
-    Objectives = DefaultObjectives
+    Objectives = NewDefaultObjectives()
   else
     Objectives = objective
   end
@@ -934,7 +939,7 @@ function RunMap(map, objective, fow, revealmap, results)
 end
 
 function RunDemo()
-  Objectives = DefaultObjectives
+  Objectives = NewDefaultObjectives()
   local mapname = "maps/demo/demo0" .. math.random(1, 4) .. ".smp"
   InitGameVariables()
   SetFogOfWar(false)

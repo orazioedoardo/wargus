@@ -7,6 +7,9 @@ function LoadGame(s)
 
   while (loop) do
     InitGameVariables()
+    -- The saved game restores Objectives element by element, into the table already there: start from an empty
+    -- one, so that it ends up with the saved objectives only (and none of another game's)
+    Objectives = {}
     StartSavedGame(s)
     Briefing = origBriefing
     if (GameResult ~= GameRestart) then
