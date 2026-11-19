@@ -36,6 +36,7 @@ import re
 import shutil
 import subprocess
 import sys
+import zlib
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -109,10 +110,11 @@ def convert(wartool, original, work):
     return extracted
 
 
-def to_vorbis(path, out, quality):
-    """Encodes any audio ffmpeg reads to Ogg Vorbis, which is what Stratagus plays (SDL_mixer's Ogg support)."""
+def to_vorbis(path, out, quality, serial):
+    """Encodes any audio ffmpeg reads to Ogg Vorbis, which is what Stratagus plays (SDL_mixer's Ogg support). The
+    stream's serial number is given: oggenc otherwise picks a random one, and the data would differ on every build."""
     decode = subprocess.Popen(["ffmpeg", "-v", "error", "-i", str(path), "-f", "wav", "-"], stdout=subprocess.PIPE)
-    run(["oggenc", "-Q", "-q", quality, "-o", out, "-"], stdin=decode.stdout)
+    run(["oggenc", "-Q", "-q", quality, "-s", serial, "-o", out, "-"], stdin=decode.stdout)
     decode.stdout.close()
     if decode.wait():
         sys.exit(f"Couldn't decode {path}")
@@ -160,7 +162,9 @@ def prepare(extracted, output):
     def encode(job):
         path, ogg, quality = job
         tmp = ogg.with_name(ogg.name + ".tmp")
-        to_vorbis(path, tmp, quality)
+        # the same serial for the same file on every build: from its name in the data
+        serial = zlib.crc32(ogg.relative_to(output).as_posix().encode()) & 0x7FFFFFFF
+        to_vorbis(path, tmp, quality, serial)
         path.unlink()
         tmp.rename(ogg)
     with ThreadPoolExecutor(os.cpu_count()) as pool:
