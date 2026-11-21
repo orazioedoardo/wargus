@@ -27,12 +27,25 @@
 --      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 --
 
+-- Where a campaign screen's background is: WarMenu scales it to the screen, keeping its 4:3 shape (KeepRatio) or not.
+-- Returns functions placing x and y of the 640x480 layout the screens were made for on it, and its scale.
+local function BackgroundLayout()
+  local w, h = Video.Width, Video.Height
+  if wc2.preferences.KeepRatio then
+    w = math.min(Video.Width, Video.Height * 4 / 3)
+    h = w * 3 / 4
+  end
+  local ox, oy = (Video.Width - w) / 2, (Video.Height - h) / 2
+  return function(x) return ox + x * w / 640 end, function(y) return oy + y * h / 480 end, w / 640, h / 480
+end
+
 function Briefing(title, objs, bg, text, voices)
   if (CurrentCampaignRace ~= nil) then
     SetPlayerData(GetThisPlayer(), "RaceName", CurrentCampaignRace)
   end
 
   local menu = WarMenu(nil, bg)
+  local X, Y, sx, sy = BackgroundLayout()
 
   wargus.playlist = {}
   if (CurrentCampaignRace == "human") then
@@ -48,12 +61,12 @@ function Briefing(title, objs, bg, text, voices)
   Objectives = objs
 
   if (title ~= nil) then
-    menu:addLabel(title, (70 + 340) / 2 * Video.Width / 640, 28 * Video.Height / 480, Fonts["large"], true)
+    menu:addLabel(title, X((70 + 340) / 2), Y(28), Fonts["large"], true)
   end
 
   local t = LoadBuffer(text)
   t = "\n\n\n\n\n\n\n\n\n\n" .. t .. "\n\n\n\n\n\n\n\n\n\n\n\n\n"
-  local sw = ScrollingWidget(320, 170 * Video.Height / 480)
+  local sw = ScrollingWidget(320, 170 * sy)
   sw:setBackgroundColor(Color(0,0,0,0))
   sw:setSpeed(0.28)
   local l = MultiLineLabel(t)
@@ -63,10 +76,10 @@ function Briefing(title, objs, bg, text, voices)
   l:setLineWidth(320)
   l:adjustSize()
   sw:add(l, 0, 0)
-  menu:add(sw, 70 * Video.Width / 640, 80 * Video.Height / 480)
+  menu:add(sw, X(70), Y(80))
 
   if (objs ~= nil) then
-    menu:addLabel(_("Objectives:"), 372 * Video.Width / 640, 306 * Video.Height / 480, Fonts["large"], false)
+    menu:addLabel(_("Objectives:"), X(372), Y(306), Fonts["large"], false)
 
     local objectives = ""
     table.foreachi(objs, function(k,v) objectives = objectives .. v .. "\n" end)
@@ -74,15 +87,15 @@ function Briefing(title, objs, bg, text, voices)
     local l = MultiLineLabel(objectives)
     l:setFont(Fonts["large"])
     l:setAlignment(MultiLineLabel.LEFT)
-    l:setLineWidth(250 * Video.Width / 640)
+    l:setLineWidth(250 * sx)
     l:adjustSize()
-    menu:add(l, 372 * Video.Width / 640, (306 * Video.Height / 480) + 30)
+    menu:add(l, X(372), Y(306) + 30)
   end
 
   local voice = 0
   local channel = -1
 
-  local ctbtn = menu:addContinueButton(_("~!Continue"), "c", 455 * Video.Width / 640, 440 * Video.Height / 480,
+  local ctbtn = menu:addContinueButton(_("~!Continue"), "c", X(455), Y(440),
     function()
       if (channel ~= -1) then
         voice = table.getn(voices)
@@ -211,7 +224,8 @@ function CreatePictureStep(bg, sound, title, text)
      local listener = LuaActionListener(fadeBlack)
      menu:addLogicCallback(listener)
      
-     local btn = menu:addHalfButton(_("~!Continue"), "c", 455 * Video.Width / 640, 440 * Video.Height / 480,
+     local X, Y = BackgroundLayout()
+     local btn = menu:addHalfButton(_("~!Continue"), "c", X(455), Y(440),
                                     function()  menu:stop(1) end)
      btn:requestFocus()
      menu:run()
