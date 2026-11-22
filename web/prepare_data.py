@@ -13,6 +13,12 @@ Stratagus source, whose headers wartool's build needs. WORK keeps wartool's buil
 conversion between runs (default: OUTPUT.work). ICON, if given, gets a 256x256 PNG icon: the game's own from GOG's
 installer when the original has it, otherwise this repository's.
 
+The game in other languages: what wartool converted from the original game in another language, in
+WORK/localized/LANG/extracted (LANG as Wargus's translations name it: it for scripts/translate/it_IT.po), is used when
+it's there. What it has that differs from the main conversion (the campaigns' texts and speech, the units' voices) goes
+into OUTPUT/LANG, where the engine looks first when the game is in that language (SetLanguageDataPath, in
+scripts/stratagus.lua). The rest is the same in every language.
+
 The data is made smaller for the web:
 - the music as Ogg Vorbis: wartool has ffmpeg encode it to .ogg without naming a codec, and an ffmpeg without libvorbis
   then writes FLAC in Ogg, which Stratagus can't play (and is 7 times bigger)
@@ -128,10 +134,12 @@ def codec(path):
 COPIED = ("shaders", "contrib", "campaigns", "maps", "scripts")   # this repository's folders the data includes
 
 
-def version(extracted):
-    """What the data is made from: this script, the conversion, and the files copied from this repository (by name,
+def version(extracted, localized):
+    """What the data is made from: this script, the conversions, and the files copied from this repository (by name,
     size and modification time). The data is redone when it changes."""
     h = hashlib.sha256(Path(__file__).read_bytes() + (extracted / ".converted").read_bytes())
+    for language, converted in localized.items():
+        h.update(f"{language}\0".encode() + (converted / ".converted").read_bytes())
     for folder in COPIED:
         for path in sorted((WARGUS / folder).rglob("*")):
             if path.is_file():
@@ -140,11 +148,40 @@ def version(extracted):
     return h.hexdigest()
 
 
-def prepare(extracted, output):
-    """The data in OUTPUT, from the conversion and this repository's files."""
+LEFT_OUT = ("*.mpq", "*.MPQ", "videos", "data_copied.wargus", ".converted", "*.mid")
+# What the game in another language has of its own: everything that differs, except what isn't in the data, the music
+# (the same, but encoded differently each time), the archives copied for re-extracting, and the scripts (the only one
+# wartool writes has its texts, which aren't used, and the settings, which are the same)
+LOCALIZED_LEFT_OUT = ("music", "support", "scripts", "extracted", "*.exe", "*.EXE")
+
+
+def differing(extracted, other):
+    """The files of the conversion OTHER that aren't in the conversion EXTRACTED as they are, relative to OTHER."""
+    left_out = shutil.ignore_patterns(*LEFT_OUT)
+    top_left_out = shutil.ignore_patterns(*LOCALIZED_LEFT_OUT)
+    found = []
+    def walk(folder, top):
+        names = sorted(p.name for p in folder.iterdir())
+        ignored = left_out(str(folder), names) | (top_left_out(str(folder), names) if top else set())
+        for name in names:
+            path = folder / name
+            if name in ignored:
+                continue
+            if path.is_dir():
+                walk(path, False)
+            else:
+                relative = path.relative_to(other)
+                base = extracted / relative
+                if not base.is_file() or base.read_bytes() != path.read_bytes():
+                    found.append(relative)
+    walk(other, True)
+    return found
+
+
+def prepare(extracted, localized, output):
+    """The data in OUTPUT, from the conversions and this repository's files."""
     shutil.rmtree(output, ignore_errors=True)
-    shutil.copytree(extracted, output, ignore=shutil.ignore_patterns(
-        "*.mpq", "*.MPQ", "videos", "data_copied.wargus", ".converted", "*.mid"))
+    shutil.copytree(extracted, output, ignore=shutil.ignore_patterns(*LEFT_OUT))
     for folder in COPIED:
         shutil.copytree(WARGUS / folder, output / folder, dirs_exist_ok=True)
     contrib = WARGUS / "contrib"
@@ -154,10 +191,19 @@ def prepare(extracted, output):
                  "ore,stone,coal.png", "score.png"):
         shutil.copy(contrib / name, output / "graphics" / "ui")
 
+    # The game in other languages: what it has of its own, in a folder named after the language
+    for language, converted in localized.items():
+        files = differing(extracted, converted)
+        print(f"{language}: {len(files)} files of its own", flush=True)
+        for relative in files:
+            (output / language / relative).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(converted / relative, output / language / relative)
+    roots = [output, *(output / language for language in localized)]   # the data, and its languages'
+
     # The music, and the campaign speeches, as Ogg Vorbis
     jobs = [(path, path.with_suffix(".ogg"), 4) for path in sorted((output / "music").iterdir())
             if path.suffix in (".wav", ".ogg") and codec(path) != "vorbis"]
-    jobs += [(wav, wav.with_suffix(".ogg"), 3) for wav in sorted((output / "campaigns").rglob("*.wav"))]
+    jobs += [(wav, wav.with_suffix(".ogg"), 3) for root in roots for wav in sorted((root / "campaigns").rglob("*.wav"))]
 
     def encode(job):
         path, ogg, quality = job
@@ -170,18 +216,22 @@ def prepare(extracted, output):
     with ThreadPoolExecutor(os.cpu_count()) as pool:
         list(pool.map(encode, jobs))
 
-    # The scripts name the campaign speeches by file: point them to the .ogg ones, and check every one exists
-    scripts = [*(output / "campaigns").rglob("*.sms"), *(output / "campaigns").rglob("*.lua"),
-               *(output / "scripts").rglob("*.lua")]
-    for script in scripts:
-        text = script.read_text(errors="surrogateescape")
-        changed = re.sub(r'"(campaigns/[^"]+)\.wav"',
-                         lambda m: f'"{m[1]}.ogg"' if (output / f"{m[1]}.ogg").exists() else m[0], text)
-        if changed != text:
-            script.write_text(changed, errors="surrogateescape")
-        for name in re.findall(r'"(campaigns/[^"]+\.(?:wav|ogg))"', changed):
-            if not (output / name).exists():
-                sys.exit(f"{script.relative_to(output)} names {name}, which isn't in the data")
+    # The scripts name the campaign speeches by file: point them to the .ogg ones, and check every one exists (in a
+    # language's folder, a script can name the language's speech or the data's)
+    for root in roots:
+        scripts = [*(root / "campaigns").rglob("*.sms"), *(root / "campaigns").rglob("*.lua"),
+                   *(root / "scripts").rglob("*.lua")]
+        def exists(name):
+            return (root / name).exists() or (output / name).exists()
+        for script in scripts:
+            text = script.read_text(errors="surrogateescape")
+            changed = re.sub(r'"(campaigns/[^"]+)\.wav"',
+                             lambda m: f'"{m[1]}.ogg"' if exists(f"{m[1]}.ogg") else m[0], text)
+            if changed != text:
+                script.write_text(changed, errors="surrogateescape")
+            for name in re.findall(r'"(campaigns/[^"]+\.(?:wav|ogg))"', changed):
+                if not exists(name):
+                    sys.exit(f"{script.relative_to(output)} names {name}, which isn't in the data")
 
 
 def main():
@@ -205,13 +255,15 @@ def main():
     if args.icon:
         write_icon(original, args.icon)
     extracted = convert(build_wartool(work, args.stratagus.resolve()), original, work)
-    current = version(extracted)
+    localized = {folder.name: folder / "extracted" for folder in sorted((work / "localized").glob("*"))
+                 if (folder / "extracted" / ".converted").exists()}
+    current = version(extracted, localized)
     stamp = output / ".stamp"
     if stamp.exists() and stamp.read_text() == current:
         print(f"{output} is up to date")
         return
     print(f"Preparing the data in {output}", flush=True)
-    prepare(extracted, output)
+    prepare(extracted, localized, output)
     stamp.write_text(current)
 
 

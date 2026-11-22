@@ -534,6 +534,11 @@ if not wc2.preferences.LanguageChosen and GetPreferredLanguages then
 	end
 end
 SetTranslationsFiles(wc2.preferences.StratagusTranslation, wc2.preferences.GameTranslation)
+-- The original game's texts and speech in that language, when the data has them (the web build's data can have them
+-- from the game in other languages, in a folder named after the language: it/ for scripts/translate/it_IT.po)
+if SetLanguageDataPath then
+	SetLanguageDataPath(string.match(wc2.preferences.GameTranslation or "", "(%a+)_%a+%.po$") or "")
+end
 SetVideoFullScreen(wc2.preferences.VideoFullScreen)
 SetVideoResolution(wc2.preferences.VideoWidth, wc2.preferences.VideoHeight)
 
