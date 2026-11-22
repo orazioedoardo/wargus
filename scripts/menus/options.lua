@@ -690,6 +690,9 @@ function SetVideoSize(width, height, keep_ratio)
       local playlist = wargus.playlist
       Load("scripts/ui.lua")
       local race = GetPlayerData(GetThisPlayer(), "RaceName")
+      if Editor.Running ~= EditorNotRunning then
+         race = "orc"   -- the map editor has the default race's view (SetDefaultRaceView), whatever its map's players
+      end
       if race == "human" or race == "orc" then
          Load("scripts/" .. race .. "/ui.lua")
       end
