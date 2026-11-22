@@ -2536,6 +2536,48 @@ int CampaignsCreate(const char* file __attribute__((unused)), int txte, int ofs)
 	return result;
 }
 
+/**
+**  The type of a .war archive (or of a Battle.net CD's tome), from its header: -1 if it isn't one.
+*/
+static int ArchiveType(const char* file)
+{
+	unsigned char header[8];
+	FILE* f = fopen(file, "rb");
+	if (!f) {
+		return -1;
+	}
+	size_t got = fread(header, 1, sizeof(header), f);
+	fclose(f);
+	if (got != sizeof(header) || AccessLE32(header) != 0x19) {
+		return -1;
+	}
+	return AccessLE16(header + 6);
+}
+
+/**
+**  The Battle.net CD's tome with the archive of the given type, as a path in the form of the given one (the tome in
+**  BNEReplaceTable, support/tomes/tome.N, with the CD's case). The tomes aren't in the same order on every CD: the US
+**  one has rezdat.war's archive in tome.2 and snddat.war's in tome.3, the Italian one the other way round.
+*/
+static const char* FindBNETome(const char* tome, int type, char* found)
+{
+	char path[8192];
+	sprintf(path, "%s/%s", ArchiveDir, tome);
+	if (ArchiveType(path) == type) {
+		return tome;
+	}
+	size_t number = strlen(tome) - 1;
+	for (char n = '1'; n <= '9'; ++n) {
+		strcpy(found, tome);
+		found[number] = n;
+		sprintf(path, "%s/%s", ArchiveDir, found);
+		if (ArchiveType(path) == type) {
+			return found;
+		}
+	}
+	return tome;   // none: opening it reports the wrong type
+}
+
 #define OUR_EXPANSION_SUBDIR "wargus.exp.data"
 
 void copyArchive(const char* partialPath) {
@@ -2779,6 +2821,7 @@ int main(int argc, char** argv)
 	int rip = 0;
 	int a = 1;
 	char filename[8192] = {'\0'};
+	char tome[8192] = {'\0'};   // a Battle.net CD's tome, when it isn't the one BNEReplaceTable names
 	FILE* f;
 
 	if(argc == 1){
@@ -3043,6 +3086,7 @@ int main(int argc, char** argv)
 								}
 								Todo[u].File = filename;
 							}
+							Todo[u].File = FindBNETome(Todo[u].File, Todo[u].Arg1, tome);
 							skip = false;
 							break;
 						}
