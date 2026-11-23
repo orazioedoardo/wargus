@@ -5,13 +5,14 @@ web/CMakeLists.txt, which builds the two together.
     web/prepare_data.py ORIGINAL OUTPUT --stratagus STRATAGUS [--work WORK] [--icon ICON]
 
 ORIGINAL is the original game: the installed game (War2Dat.mpq and Install.mpq for the Battle.net Edition, or the files
-of a DOS CD), or GOG's installer (setup_warcraft_ii_*.exe, with its .bin next to it), which is unpacked into
-WORK/original the first time; after that, it isn't needed. OUTPUT gets the data as the web build preloads it, at / (the
-engine's default data path is the current directory): what wartool converts from the original, with this
-repository's scripts, maps and graphics, as the install puts them together (CMakeLists.txt). STRATAGUS is the
-Stratagus source, whose headers wartool's build needs. WORK keeps wartool's build, the unpacked installer and the
-conversion between runs (default: OUTPUT.work). ICON, if given, gets a 256x256 PNG icon: the game's own from GOG's
-installer when the original has it, otherwise this repository's.
+of a DOS CD), or GOG's installer (its .exe, with its .bin next to it, named after it: setup_warcraft_ii.exe and
+setup_warcraft_ii-1.bin, say: innoextract looks for <name>-1.bin), which is unpacked into WORK/original the first time;
+after that, it isn't needed. OUTPUT gets the data as the web build preloads it, at / (the engine's default data path is
+the current directory): what wartool converts from the original, with this repository's scripts, maps and graphics, as
+the install puts them together (CMakeLists.txt). STRATAGUS is the Stratagus source, whose headers wartool's build
+needs. WORK keeps wartool's build, the unpacked installer and the conversion between runs (default: OUTPUT.work). ICON,
+if given, gets a 256x256 PNG icon: the game's own from GOG's installer when the original has it, otherwise this
+repository's.
 
 The game in other languages: what wartool converted from the original game in another language, in
 WORK/localized/LANG/extracted (LANG as Wargus's translations name it: it for scripts/translate/it_IT.po), is used when

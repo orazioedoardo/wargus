@@ -4,9 +4,10 @@
 #     emcmake cmake -B build -DWARGUS_ORIGINAL=<the original game>   (the top CMakeLists.txt hands over to this one)
 #     cmake --build build
 #
-# WARGUS_ORIGINAL is the installed original game, or GOG's installer (setup_warcraft_ii_*.exe, with its .bin next to
-# it), which is unpacked the first time; after that the installer can be removed. STRATAGUS_SOURCE is Stratagus's
-# source (default: next to this repository), from its web branch (cmake/web.cmake).
+# WARGUS_ORIGINAL is the installed original game, or GOG's installer (its .exe, with its .bin next to it, named after
+# it: setup_warcraft_ii.exe and setup_warcraft_ii-1.bin, say), which is unpacked the first time; after that the
+# installer can be removed. STRATAGUS_SOURCE is Stratagus's source (default: next to this repository), from its web
+# branch (cmake/web.cmake).
 #
 # Writes, at the top of the build folder, Wargus.js, Wargus.wasm and Wargus.data, to be run by a web page (see
 # Stratagus's cmake/web.cmake), and Wargus.png, a 256x256 icon. The data is prepared by prepare_data.py, which needs Python with Pillow, ffmpeg, oggenc,

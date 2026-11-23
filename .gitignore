@@ -19,3 +19,5 @@ Roland*
 SC-55
 SGM-V2.01
 .idea
+# GOG's installer, the original game for the web build (web/CMakeLists.txt)
+/setup_warcraft_ii*
