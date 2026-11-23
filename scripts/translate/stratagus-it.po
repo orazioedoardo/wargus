@@ -85,7 +85,7 @@ msgstr "Il giocatore \"%s\" ha lasciato la partita"
 
 #: action/command.cpp:989
 msgid "Player \"%s\" has been killed"
-msgstr "Il giocatore \"%s\" e' stato ucciso­"
+msgstr "Il giocatore \"%s\" e' stato ucciso"
 
 #: editor/editloop.cpp:313
 msgid "Unit deleted"
@@ -154,7 +154,7 @@ msgstr "Proiettile %s"
 #: missile/missileconfig.cpp:58
 msgid "Can't find missile %s\n"
 ""
-msgstr "Non riesco a trovare il proiettile­: %s\n"
+msgstr "Non riesco a trovare il proiettile: %s\n"
 ""
 
 #: network/network.cpp:831
@@ -245,7 +245,7 @@ msgstr "Il suono e' acceso"
 
 #: ui/interface.cpp:271
 msgid "Sound is off."
-msgstr "Il suono e' spento­"
+msgstr "Il suono e' spento"
 
 #: ui/interface.cpp:286
 msgid "Music is off."
@@ -285,11 +285,11 @@ msgstr "Imposta la velocita' predefinita"
 
 #: ui/interface.cpp:441
 msgid "Terrain displayed."
-msgstr "Terreno visualizzato.­"
+msgstr "Terreno visualizzato."
 
 #: ui/interface.cpp:443
 msgid "Terrain hidden."
-msgstr "Terreno nascosto.­"
+msgstr "Terreno nascosto."
 
 #: ui/interface.cpp:487
 msgid "Grab mouse toggled."

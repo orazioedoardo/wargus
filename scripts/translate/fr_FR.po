@@ -2668,7 +2668,7 @@ msgstr "Cho'gall"
 
 #: orc/units.lua:830
 msgid "Gul'dan"
-msgstr "Gul'dan­"
+msgstr "Gul'dan"
 
 #: orc/units.lua:868
 msgid "Zuljin"

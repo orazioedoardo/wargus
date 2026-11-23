@@ -171,7 +171,7 @@ msgstr "Clan Stormreaver"
 
 #: guichan.lua:952
 msgid "Bleeding Hollow Clan"
-msgstr "Clan Bleeding Hollow­"
+msgstr "Clan Bleeding Hollow"
 
 #: guichan.lua:954
 msgid "Twilight's Hammer Clan"
@@ -891,7 +891,7 @@ msgstr "Atto II"
 
 #: human/campaign1.lua:40 orc/campaign1.lua:40
 msgid "Khaz Modan"
-msgstr "Khaz Modan­"
+msgstr "Khaz Modan"
 
 #: human/campaign1.lua:46 human/campaign2.lua:45 orc/campaign1.lua:46
 #: orc/campaign2.lua:45
@@ -946,7 +946,7 @@ msgstr "Fante"
 
 #: human/units.lua:65 menus/results.lua:8
 msgid "Peasant"
-msgstr "Bracciante­"
+msgstr "Bracciante"
 
 #: human/units.lua:111
 msgid "Minuteman"
@@ -970,7 +970,7 @@ msgstr "Mago"
 
 #: human/units.lua:294
 msgid "Paladin"
-msgstr "Paladino­"
+msgstr "Paladino"
 
 #: human/units.lua:326
 msgid "Dwarves"
@@ -1902,7 +1902,7 @@ msgstr "Afferra Mouse"
 
 #: menus/options.lua:222
 msgid "~!*Show damage"
-msgstr "Mostra danni­"
+msgstr "Mostra danni"
 
 #: menus/options.lua:234
 msgid "~!*Show button popups"
@@ -2183,7 +2183,7 @@ msgstr "Tenente"
 
 #: menus/results.lua:14 menus/results.lua:36
 msgid "Captain"
-msgstr "Capitano­"
+msgstr "Capitano"
 
 #: menus/results.lua:15 menus/results.lua:37
 msgid "Major"
@@ -2659,7 +2659,7 @@ msgstr "Cho'gall"
 
 #: orc/units.lua:830
 msgid "Gul'dan"
-msgstr "Gul'dan­"
+msgstr "Gul'dan"
 
 #: orc/units.lua:868
 msgid "Zuljin"

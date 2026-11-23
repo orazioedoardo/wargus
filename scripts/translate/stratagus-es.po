@@ -154,7 +154,7 @@ msgstr "Misil %s"
 #: missile/missileconfig.cpp:58
 msgid "Can't find missile %s\n"
 ""
-msgstr "No se puede encontrar el misil­: %s\n"
+msgstr "No se puede encontrar el misil: %s\n"
 ""
 
 #: network/network.cpp:831
