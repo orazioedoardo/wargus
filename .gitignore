@@ -21,3 +21,5 @@ SGM-V2.01
 .idea
 # GOG's installer, the original game for the web build (web/CMakeLists.txt)
 /setup_warcraft_ii*
+# a Battle.net Edition CD's INSTALL.EXE, the game in another language
+/install_*.exe

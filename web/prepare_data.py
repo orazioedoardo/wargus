@@ -2,7 +2,7 @@
 """Prepares Wargus's data for the web build of Stratagus (Stratagus's cmake/web.cmake: -DSTRATAGUS_WEB_DATA). Run by
 web/CMakeLists.txt, which builds the two together.
 
-    web/prepare_data.py ORIGINAL OUTPUT --stratagus STRATAGUS [--work WORK] [--icon ICON]
+    web/prepare_data.py ORIGINAL OUTPUT --stratagus STRATAGUS [--work WORK] [--icon ICON] [--localized LANG=INSTALL]...
 
 ORIGINAL is the original game: the installed game (War2Dat.mpq and Install.mpq for the Battle.net Edition, or the files
 of a DOS CD), or GOG's installer (its .exe, with its .bin next to it, named after it: setup_warcraft_ii.exe and
@@ -14,11 +14,14 @@ needs. WORK keeps wartool's build, the unpacked installer and the conversion bet
 if given, gets a 256x256 PNG icon: the game's own from GOG's installer when the original has it, otherwise this
 repository's.
 
-The game in other languages: what wartool converted from the original game in another language, in
-WORK/localized/LANG/extracted (LANG as Wargus's translations name it: it for scripts/translate/it_IT.po), is used when
-it's there. What it has that differs from the main conversion (the campaigns' texts and speech, the units' voices) goes
-into OUTPUT/LANG, where the engine looks first when the game is in that language (SetLanguageDataPath, in
-scripts/stratagus.lua). The rest is the same in every language.
+The game in other languages: --localized LANG=INSTALL gives the INSTALL.EXE of a Battle.net Edition CD in another
+language (LANG as Wargus's translations name it: it for scripts/translate/it_IT.po). That's where the CD has the game's
+texts, speech and music (in War2Dat.mpq and Install.mpq, inside it); the rest of the CD, the graphics, is the same in
+every language, and wartool takes it from the main original (its Support/TOMES). The conversion is kept in
+WORK/localized/LANG/extracted, and used from then on: after that INSTALL isn't needed (without either, the game is
+built without that language). What it has that differs from the main conversion (the campaigns' texts and speech, the
+units' voices) goes into OUTPUT/LANG, where the engine looks first when the game is in that language
+(SetLanguageDataPath, in scripts/stratagus.lua). The rest is the same in every language.
 
 The data is made smaller for the web:
 - the music as Ogg Vorbis: wartool has ffmpeg encode it to .ogg without naming a codec, and an ffmpeg without libvorbis
@@ -114,6 +117,31 @@ def convert(wartool, original, work):
         shutil.rmtree(extracted, ignore_errors=True)
         run([wartool, "-r", original, extracted])   # -r: also the music (the Battle.net Edition has it in Install.mpq)
         done.write_text("done\n")
+    return extracted
+
+
+def convert_localized(wartool, original, install, work):
+    """Wartool's conversion of the game in another language, from its CD's INSTALL.EXE and the main original's
+    tomes, kept in WORK/extracted; None if there's neither the conversion nor INSTALL.EXE."""
+    extracted = work / "extracted"
+    if (extracted / ".converted").exists():
+        return extracted
+    if not install.is_file():
+        print(f"{install} isn't there: the game is built without that language", flush=True)
+        return None
+    tomes = next((t for t in (original / "Support" / "TOMES", original / "support" / "tomes") if t.is_dir()), None)
+    if not tomes:
+        sys.exit(f"The original game has no Support/TOMES (it isn't the Battle.net Edition): can't convert {install}")
+    # A CD as wartool reads it: INSTALL.EXE, and the tomes
+    cd = work / "cd"
+    shutil.rmtree(cd, ignore_errors=True)
+    (cd / "Support").mkdir(parents=True)
+    (cd / "INSTALL.EXE").symlink_to(install.resolve())
+    (cd / "Support" / "TOMES").symlink_to(tomes.resolve())
+    convert(wartool, cd, work)
+    shutil.rmtree(cd)
+    for name in ("install.exe", "INSTALL.EXE"):   # INSTALL.EXE, copied by wartool: not needed
+        (extracted / name).unlink(missing_ok=True)
     return extracted
 
 
@@ -243,6 +271,8 @@ def main():
     parser.add_argument("--work", type=Path, help="where to keep wartool's build, the unpacked installer and the "
                         "conversion (default: OUTPUT.work)")
     parser.add_argument("--icon", type=Path, help="where to write a 256x256 PNG icon")
+    parser.add_argument("--localized", action="append", default=[], metavar="LANG=INSTALL",
+                        help="the INSTALL.EXE of a Battle.net Edition CD in another language")
     args = parser.parse_args()
     missing = [n for n in ("cmake", "ffmpeg", "ffprobe", "oggenc") if not shutil.which(n)]
     if missing:
@@ -255,9 +285,16 @@ def main():
     original = unpack(args.original.resolve() if args.original.parts else None, work)
     if args.icon:
         write_icon(original, args.icon)
-    extracted = convert(build_wartool(work, args.stratagus.resolve()), original, work)
-    localized = {folder.name: folder / "extracted" for folder in sorted((work / "localized").glob("*"))
-                 if (folder / "extracted" / ".converted").exists()}
+    wartool = build_wartool(work, args.stratagus.resolve())
+    extracted = convert(wartool, original, work)
+    localized = {}
+    for entry in args.localized:
+        language, _, install = entry.partition("=")
+        if not re.fullmatch(r"[a-z]+", language) or not install:
+            sys.exit(f"--localized {entry}: give LANG=INSTALL, such as it=install_it.exe")
+        converted = convert_localized(wartool, original, Path(install), work / "localized" / language)
+        if converted:
+            localized[language] = converted
     current = version(extracted, localized)
     stamp = output / ".stamp"
     if stamp.exists() and stamp.read_text() == current:
