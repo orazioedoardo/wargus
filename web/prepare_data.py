@@ -28,8 +28,10 @@ The data is made smaller for the web:
   then writes FLAC in Ogg, which Stratagus can't play (and is 7 times bigger)
 - the campaign briefings and victory speeches as Ogg Vorbis instead of WAV (a seventh of the size), with the scripts
   naming them changed to match
-- left out: the original archives (copied for re-extracting from the game's menu), the Smacker videos (the engine plays
-  them once converted to Ogg Theora, which the web build doesn't include) and the MIDI music
+- the videos as H.264 in MP4 instead of Smacker (a third of the size), which the browser plays (the engine's PlayMovie
+  on the web): Ogg Theora, which the engine plays on the desktop, isn't in the web build, nor in Homebrew's ffmpeg.
+  They're kept in WORK/videos, by the Smacker file they're made from, so they're encoded only once
+- left out: the original archives (copied for re-extracting from the game's menu) and the MIDI music
 
 The conversion is done once (delete WORK/extracted to redo it); the data is redone whenever this script, or this
 repository's files it includes, change. When
@@ -155,6 +157,27 @@ def to_vorbis(path, out, quality, serial):
         sys.exit(f"Couldn't decode {path}")
 
 
+# How the videos are encoded: H.264 and AAC, which every browser plays. The Smacker videos (320x288, the logo 320x308)
+# have pixels 1.6 times as wide as they're tall, which makes them 16:9: the intro's lines of text, in Times New Roman,
+# are 1.6 times as wide set in that font at the same height. Shown at 4:3, as wartool's conversion has them, they look
+# squashed.
+VIDEO_ENCODING = ["-vf", "setsar=8/5", "-c:v", "libx264", "-crf", "20", "-preset", "slow", "-pix_fmt", "yuv420p",
+                  "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", "-map_metadata", "-1", "-fflags", "+bitexact"]
+
+
+def to_mp4(smk, mp4, cache):
+    """The Smacker video SMK as MP4, encoded once, then taken from CACHE (by SMK's contents and the encoding)."""
+    key = hashlib.sha256(smk.read_bytes() + "\0".join(VIDEO_ENCODING).encode()).hexdigest()[:20]
+    cached = cache / f"{key}.mp4"
+    if not cached.exists():
+        cache.mkdir(parents=True, exist_ok=True)
+        tmp = cached.with_name(cached.name + ".tmp")
+        run(["ffmpeg", "-v", "error", "-y", "-i", smk, *VIDEO_ENCODING, "-f", "mp4", tmp])
+        tmp.rename(cached)
+    mp4.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(cached, mp4)
+
+
 def codec(path):
     return subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_name",
                            "-of", "csv=p=0", str(path)], capture_output=True, text=True).stdout.strip()
@@ -207,8 +230,8 @@ def differing(extracted, other):
     return found
 
 
-def prepare(extracted, localized, output):
-    """The data in OUTPUT, from the conversions and this repository's files."""
+def prepare(extracted, localized, output, work):
+    """The data in OUTPUT, from the conversions and this repository's files (WORK keeps the encoded videos)."""
     shutil.rmtree(output, ignore_errors=True)
     shutil.copytree(extracted, output, ignore=shutil.ignore_patterns(*LEFT_OUT))
     for folder in COPIED:
@@ -228,6 +251,17 @@ def prepare(extracted, localized, output):
             (output / language / relative).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(converted / relative, output / language / relative)
     roots = [output, *(output / language for language in localized)]   # the data, and its languages'
+
+    # The videos as MP4: the data's, and a language's own where its video differs (its narration)
+    videos = [(smk, output / "videos" / f"{smk.stem}.mp4") for smk in sorted((extracted / "videos").glob("*.smk"))]
+    for language, converted in localized.items():
+        for smk in sorted((converted / "videos").glob("*.smk")):
+            base = extracted / "videos" / smk.name
+            if not base.is_file() or base.read_bytes() != smk.read_bytes():
+                videos.append((smk, output / language / "videos" / f"{smk.stem}.mp4"))
+    with ThreadPoolExecutor(2) as pool:   # ffmpeg uses every core already
+        list(pool.map(lambda video: to_mp4(*video, work / "videos"), videos))
+    print(f"{len(videos)} videos", flush=True)
 
     # The music, and the campaign speeches, as Ogg Vorbis
     jobs = [(path, path.with_suffix(".ogg"), 4) for path in sorted((output / "music").iterdir())
@@ -301,7 +335,7 @@ def main():
         print(f"{output} is up to date")
         return
     print(f"Preparing the data in {output}", flush=True)
-    prepare(extracted, localized, output)
+    prepare(extracted, localized, output, work)
     stamp.write_text(current)
 
 
